@@ -134,6 +134,7 @@ function renderCategoryChart(categories) {
  * @param {Array<Object>} velocity - Velocity data with weeks
  */
 function renderTimelineChart(velocity) {
+    const timelineTickAngle = -35;
     const weeks = velocity.map(v => v.week);
     const builds = velocity.map(v => v.builds);
     const weekRanges = velocity.map(v => `${v.weekStart} → ${v.weekEnd}`);
@@ -165,7 +166,7 @@ function renderTimelineChart(velocity) {
             title: 'Week Range',
             titlefont: { color: '#e6edf3' },
             tickfont: { color: '#8b949e' },
-            tickangle: -35,
+            tickangle: timelineTickAngle,
             gridcolor: '#30363d'
         },
         yaxis: {

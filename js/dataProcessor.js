@@ -186,16 +186,13 @@ function getWeekStart(date) {
 }
 
 function formatWeekLabel(startDate, endDate) {
-    const startLabel = startDate.toLocaleDateString(undefined, {
+    const dateFormatOptions = {
         month: 'short',
         day: 'numeric',
         timeZone: 'UTC'
-    });
-    const endLabel = endDate.toLocaleDateString(undefined, {
-        month: 'short',
-        day: 'numeric',
-        timeZone: 'UTC'
-    });
+    };
+    const startLabel = startDate.toLocaleDateString(undefined, dateFormatOptions);
+    const endLabel = endDate.toLocaleDateString(undefined, dateFormatOptions);
 
     return `${startLabel} - ${endLabel}`;
 }

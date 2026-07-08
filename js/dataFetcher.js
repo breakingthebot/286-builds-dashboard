@@ -72,22 +72,22 @@ function normalizeBuildData(build) {
 
 function detectDeployment(build) {
     const deploymentMatchers = [
-        { platform: 'Vercel', regex: /\bvercel\b/i },
-        { platform: 'Streamlit', regex: /\bstreamlit\b/i },
-        { platform: 'Netlify', regex: /\bnetlify\b/i },
-        { platform: 'GitHub Pages', regex: /\bgithub pages\b|\bgh-pages\b/i },
-        { platform: 'Render', regex: /\brender(?:\.com)?\b/i },
-        { platform: 'Railway', regex: /\brailway\b/i },
-        { platform: 'Fly.io', regex: /\bfly\.io\b|\bflyio\b/i },
-        { platform: 'Firebase', regex: /\bfirebase hosting\b/i },
-        { platform: 'Heroku', regex: /\bheroku\b/i },
-        { platform: 'Surge', regex: /\bsurge\.sh\b|\bsurge\b/i }
+        { platform: 'Vercel', regex: /\bvercel\b/ },
+        { platform: 'Streamlit', regex: /\bstreamlit\b/ },
+        { platform: 'Netlify', regex: /\bnetlify\b/ },
+        { platform: 'GitHub Pages', regex: /\bgithub pages\b|\bgh-pages\b/ },
+        { platform: 'Render', regex: /\brender(?:\.com)?\b/ },
+        { platform: 'Railway', regex: /\brailway\b/ },
+        { platform: 'Fly.io', regex: /\bfly\.io\b|\bflyio\b/ },
+        { platform: 'Firebase', regex: /\bfirebase hosting\b/ },
+        { platform: 'Heroku', regex: /\bheroku\b/ },
+        { platform: 'Surge', regex: /\bsurge\.sh\b|\bsurge\b/ }
     ];
 
     const searchableText = [
         build.description || '',
         build.notes || ''
-    ].join(' ');
+    ].join(' ').toLowerCase();
 
     const matchedPlatform = deploymentMatchers.find(({ regex }) => regex.test(searchableText));
 
