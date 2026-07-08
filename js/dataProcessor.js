@@ -106,56 +106,98 @@ function aggregateByDepth(builds) {
  */
 function calculateBuildVelocity(builds) {
     // Sort by date
-    const sortedBuilds = [...builds].sort((a, b) => {
-        return new Date(a.date) - new Date(b.date);
-    });
+    const sortedBuilds = [...builds]
+        .map(build => ({
+            ...build,
+            parsedDate: parseBuildDate(build.date)
+        }))
+        .filter(build => !Number.isNaN(build.parsedDate.getTime()))
+        .sort((a, b) => a.parsedDate - b.parsedDate);
     
     // Group by week
     const weekMap = {};
+    let cumulative = 0;
     
     sortedBuilds.forEach(build => {
-        const date = new Date(build.date);
-        // Get week number
-        const onejan = new Date(date.getFullYear(), 0, 1);
-        const millisecsInDay = 86400000;
-        const weekNum = Math.ceil((((date - onejan) / millisecsInDay) + onejan.getDay() + 1) / 7);
-        const year = date.getFullYear();
-        const weekKey = `${year}-W${weekNum}`;
+        const weekStart = getWeekStart(build.parsedDate);
+        const weekEnd = new Date(weekStart);
+        weekEnd.setUTCDate(weekEnd.getUTCDate() + 6);
+        const weekKey = weekStart.toISOString().split('T')[0];
         
         if (!weekMap[weekKey]) {
             weekMap[weekKey] = {
-                week: weekNum,
-                year: year,
+                week: formatWeekLabel(weekStart, weekEnd),
                 weekKey: weekKey,
-                date: date.toISOString().split('T')[0],
+                date: weekKey,
+                weekStart: weekKey,
+                weekEnd: weekEnd.toISOString().split('T')[0],
                 builds: 0,
+                cumulative: 0,
                 projects: new Set()
             };
         }
         
+        cumulative++;
         weekMap[weekKey].builds++;
+        weekMap[weekKey].cumulative = cumulative;
         weekMap[weekKey].projects.add(build.project_name);
     });
     
     // Convert to array and calculate cumulative
     const velocity = Object.values(weekMap)
         .sort((a, b) => {
-            const aDate = new Date(a.date);
-            const bDate = new Date(b.date);
+            const aDate = new Date(a.weekStart);
+            const bDate = new Date(b.weekStart);
             return aDate - bDate;
         })
-        .map((week, index) => ({
+        .map(week => ({
             week: week.week,
             weekKey: week.weekKey,
             date: week.date,
+            weekStart: week.weekStart,
+            weekEnd: week.weekEnd,
             builds: week.builds,
-            cumulative: sortedBuilds.slice(0, sortedBuilds.indexOf(
-                sortedBuilds.find(b => new Date(b.date).toISOString().split('T')[0] === week.date)
-            ) + 1).length
+            cumulative: week.cumulative
         }));
 
     console.log('📅 Build velocity calculated from real dates:', velocity.length, 'weeks');
     return velocity;
+}
+
+function parseBuildDate(dateValue) {
+    if (!dateValue) {
+        return new Date(NaN);
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+        return new Date(`${dateValue}T00:00:00Z`);
+    }
+
+    return new Date(dateValue);
+}
+
+function getWeekStart(date) {
+    const weekStart = new Date(date);
+    const day = weekStart.getUTCDay();
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    weekStart.setUTCDate(weekStart.getUTCDate() + diffToMonday);
+    weekStart.setUTCHours(0, 0, 0, 0);
+    return weekStart;
+}
+
+function formatWeekLabel(startDate, endDate) {
+    const startLabel = startDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        timeZone: 'UTC'
+    });
+    const endLabel = endDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        timeZone: 'UTC'
+    });
+
+    return `${startLabel} - ${endLabel}`;
 }
 
 /**

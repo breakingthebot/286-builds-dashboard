@@ -36,6 +36,7 @@ async function getAllBuildsData(enrichData = false) {
 function normalizeBuildData(build) {
     // YOUR field is "depth", not "build_depth"
     const depth = build.depth || 'Basic';
+    const deployment = detectDeployment(build);
     
     // Extract technology - use stack array, filter out categories
     let technology = [];
@@ -61,12 +62,39 @@ function normalizeBuildData(build) {
         category: build.category || 'Uncategorized',
         build_depth: depth,  // NOW CORRECTLY MAPPED
         notes: build.notes || '',
-        is_deployed: false,
-        deployment_platform: null
+        is_deployed: deployment.isDeployed,
+        deployment_platform: deployment.platform
     };
     
     console.log(`✅ Normalized: ${build.project_name} - depth: ${depth}`);
     return normalized;
+}
+
+function detectDeployment(build) {
+    const deploymentMatchers = [
+        { platform: 'Vercel', regex: /\bvercel\b/i },
+        { platform: 'Streamlit', regex: /\bstreamlit\b/i },
+        { platform: 'Netlify', regex: /\bnetlify\b/i },
+        { platform: 'GitHub Pages', regex: /\bgithub pages\b|\bgh-pages\b/i },
+        { platform: 'Render', regex: /\bdeployed to render\b|\bhosted on render\b|\brender\.com\b/i },
+        { platform: 'Railway', regex: /\brailway\b/i },
+        { platform: 'Fly.io', regex: /\bfly\.io\b|\bflyio\b/i },
+        { platform: 'Firebase', regex: /\bfirebase hosting\b/i },
+        { platform: 'Heroku', regex: /\bheroku\b/i },
+        { platform: 'Surge', regex: /\bsurge\.sh\b|\bsurge\b/i }
+    ];
+
+    const searchableText = [
+        build.description || '',
+        build.notes || ''
+    ].join(' ');
+
+    const matchedPlatform = deploymentMatchers.find(({ regex }) => regex.test(searchableText));
+
+    return {
+        isDeployed: Boolean(matchedPlatform),
+        platform: matchedPlatform ? matchedPlatform.platform : null
+    };
 }
 
 console.log('✨ DataFetcher.js loaded');
