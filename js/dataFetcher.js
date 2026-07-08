@@ -1,202 +1,265 @@
 /**
  * Data Fetcher Module
  * 
- * Handles fetching build data from the 286-builds repository
- * Converts raw GitHub data into a processable format
- * 
- * Main function: fetchBuildsData()
- * Returns: Promise<Array> - Array of build objects
+ * Fetches build data from the 286-builds repository
+ * Handles GitHub API calls and data normalization
+ * Adapted for your actual build data structure
  */
 
 /**
- * Fetch builds.json from the 286-builds repository
- * Uses GitHub raw content URL for CORS-friendly access
+ * Fetch all builds from the 286-builds repo
  * 
- * @returns {Promise<Object>} - Parsed builds.json data
- * @throws {Error} - If fetch fails or data is invalid
+ * @param {Boolean} enrichData - Whether to fetch GitHub metadata (slower)
+ * @returns {Array<Object>} - Array of normalized builds
  */
-async function fetchBuildsData() {
-    const BUILDS_JSON_URL = 'https://raw.githubusercontent.com/breakingthebot/286-builds/main/builds.json';
+async function getAllBuildsData(enrichData = false) {
+    console.log('📡 Fetching builds data...');
     
     try {
-        console.log('📡 Fetching builds data from:', BUILDS_JSON_URL);
+        // Fetch raw JSON from GitHub
+        const url = 'https://raw.githubusercontent.com/breakingthebot/286-builds/main/builds.json';
+        const response = await fetch(url, { cache: 'no-cache' });
         
-        const response = await fetch(BUILDS_JSON_URL, {
-            method: 'GET',
-            headers: {
-                'Accept': 'application/json',
-            },
-            // Add cache busting to ensure fresh data
-            cache: 'no-cache'
-        });
-
-        // Handle HTTP errors
         if (!response.ok) {
-            throw new Error(
-                `Failed to fetch builds.json: HTTP ${response.status} ${response.statusText}`
+            throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
+        }
+        
+        let builds = await response.json();
+        
+        if (!Array.isArray(builds)) {
+            throw new Error('Invalid data format: expected array of builds');
+        }
+        
+        console.log(`✅ Fetched ${builds.length} builds`);
+        
+        // Normalize all builds
+        builds = builds.map(build => normalizeBuildData(build));
+        
+        // Optionally enrich with GitHub metadata (slower)
+        if (enrichData) {
+            console.log('📊 Enriching with GitHub metadata...');
+            builds = await Promise.all(
+                builds.map(build => enrichBuildWithMetadata(build))
             );
         }
-
-        // Parse JSON
-        const buildsData = await response.json();
         
-        // Validate data structure
-        if (!Array.isArray(buildsData)) {
-            throw new Error('Invalid data format: Expected array of builds');
-        }
-
-        console.log(`✅ Successfully fetched ${buildsData.length} builds`);
+        return builds;
         
-        return buildsData;
-
     } catch (error) {
-        console.error('❌ Error fetching builds data:', error);
-        throw error;
+        console.error('❌ Error fetching builds:', error);
+        throw new Error(`Failed to fetch builds: ${error.message}`);
     }
 }
 
 /**
- * Fetch individual build metadata from a repository
- * Useful for getting dates and additional info from each build repo
+ * Normalize build data to consistent format
+ * Handles your actual field names: date, stack, depth, category
  * 
- * @param {Object} build - Build object with repo_url
- * @returns {Promise<Object>} - Build with enriched metadata
+ * @param {Object} build - Raw build object from JSON
+ * @returns {Object} - Normalized build
+ */
+function normalizeBuildData(build) {
+    // Extract technology/stack
+    let technology = [];
+    
+    if (build.stack && Array.isArray(build.stack)) {
+        // Use stack array if available - filter out categories
+        technology = build.stack.filter(item => {
+            // Remove category-like items
+            const categoryKeywords = ['frontend', 'backend', 'devops', 'cli', 'mobile', 'desktop', 'data', 'networking', 'analytics', 'packages', 'console', 'apps', 'tools', 'automation'];
+            return !categoryKeywords.some(kw => item.toLowerCase().includes(kw));
+        });
+    } else if (build.technology) {
+        if (Array.isArray(build.technology)) {
+            technology = build.technology;
+        } else {
+            technology = [build.technology];
+        }
+    }
+    
+    // Fallback
+    if (technology.length === 0 && build.technology) {
+        technology = Array.isArray(build.technology) ? build.technology : [build.technology];
+    }
+    
+    // Map depth field (you use "depth", sample used "build_depth")
+    const depth = build.depth || build.build_depth || 'Basic';
+    
+    // Get real date or use current
+    const date = build.date || new Date().toISOString().split('T')[0];
+    
+    // Check for deployment info
+    const deployment = extractDeploymentInfo(build);
+    
+    const normalized = {
+        build_number: build.build_number || 0,
+        date: date,
+        project_name: build.project_name || 'Untitled Build',
+        description: build.description || '',
+        repo_url: build.repo_url || '',
+        technology: technology,
+        category: build.category || 'Uncategorized',
+        build_depth: depth,
+        notes: build.notes || '',
+        live_url: build.live_url || deployment.url || '',
+        is_deployed: deployment.is_deployed,
+        deployment_platform: deployment.platform
+    };
+    
+    return normalized;
+}
+
+/**
+ * Extract deployment info from build
+ * Looks for Vercel, Streamlit, GitHub Pages, etc
+ * 
+ * @param {Object} build - Build object
+ * @returns {Object} - Deployment info
+ */
+function extractDeploymentInfo(build) {
+    const deployment = {
+        is_deployed: false,
+        platform: null,
+        url: null
+    };
+    
+    const fullText = (
+        (build.description || '') + ' ' + 
+        (build.notes || '') + ' ' + 
+        (build.project_name || '')
+    ).toLowerCase();
+    
+    // Check for Vercel
+    if (fullText.includes('vercel')) {
+        deployment.is_deployed = true;
+        deployment.platform = 'Vercel';
+        // Try to guess vercel URL
+        if (build.project_name) {
+            const projectSlug = build.project_name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+            deployment.url = `https://${projectSlug}.vercel.app`;
+        }
+    }
+    
+    // Check for Streamlit
+    if (fullText.includes('streamlit')) {
+        deployment.is_deployed = true;
+        deployment.platform = 'Streamlit';
+    }
+    
+    // Check for GitHub Pages
+    if (fullText.includes('github pages') || fullText.includes('gh-pages')) {
+        deployment.is_deployed = true;
+        deployment.platform = 'GitHub Pages';
+    }
+    
+    // Check for Heroku
+    if (fullText.includes('heroku')) {
+        deployment.is_deployed = true;
+        deployment.platform = 'Heroku';
+    }
+    
+    // Check for explicit live_url
+    if (build.live_url) {
+        deployment.is_deployed = true;
+        deployment.url = build.live_url;
+    }
+    
+    return deployment;
+}
+
+/**
+ * Enrich build with GitHub repository metadata
+ * Fetches GitHub API data for the repo
+ * 
+ * @param {Object} build - Normalized build
+ * @returns {Promise<Object>} - Build with GitHub metadata
  */
 async function enrichBuildWithMetadata(build) {
+    if (!build.repo_url) return build;
+    
     try {
         // Extract owner and repo from URL
-        // Example: https://github.com/breakingthebot/build-001
         const match = build.repo_url.match(/github\.com\/([^\/]+)\/([^\/]+)\/?$/);
+        if (!match) return build;
         
-        if (!match) {
-            console.warn(`⚠️ Could not parse repo URL: ${build.repo_url}`);
-            return build;
-        }
-
         const [, owner, repo] = match;
         
-        // Fetch repo info from GitHub API (public repos don't need auth)
+        // Fetch from GitHub API
         const apiUrl = `https://api.github.com/repos/${owner}/${repo}`;
-        
         const response = await fetch(apiUrl, {
             headers: {
-                'Accept': 'application/vnd.github.v3+json',
+                'Accept': 'application/vnd.github.v3+json'
             }
         });
-
-        if (!response.ok) {
-            console.warn(`⚠️ Could not fetch metadata for ${repo}`);
-            return build;
-        }
-
+        
+        if (!response.ok) return build;
+        
         const repoData = await response.json();
         
-        // Enrich build with GitHub metadata
-        return {
-            ...build,
-            github_metadata: {
-                created_at: repoData.created_at,
-                updated_at: repoData.updated_at,
-                pushed_at: repoData.pushed_at,
-                stars: repoData.stargazers_count,
-                watchers: repoData.watchers_count,
-                forks: repoData.forks_count,
-                open_issues: repoData.open_issues_count,
-                description: repoData.description,
-                homepage: repoData.homepage,
-            }
+        // Enrich build with metadata
+        build.github_stats = {
+            stars: repoData.stargazers_count || 0,
+            forks: repoData.forks_count || 0,
+            language: repoData.language || null,
+            topics: repoData.topics || [],
+            updated_at: repoData.updated_at || null,
+            created_at: repoData.created_at || null
         };
-
+        
+        return build;
+        
     } catch (error) {
-        console.error(`❌ Error enriching build metadata:`, error);
-        // Return original build if enrichment fails
+        console.warn(`⚠️ Could not enrich build ${build.project_name}:`, error.message);
         return build;
     }
 }
 
 /**
- * Batch fetch metadata for multiple builds
- * Includes rate limiting to avoid GitHub API throttling
+ * Calculate deployment statistics
+ * Counts deployed vs non-deployed, by platform
  * 
- * @param {Array<Object>} builds - Array of build objects
- * @param {Number} delayMs - Delay between requests (default: 500ms)
- * @returns {Promise<Array>} - Builds with enriched metadata
+ * @param {Array<Object>} builds - Array of builds
+ * @returns {Object} - Deployment stats
  */
-async function enrichAllBuilds(builds, delayMs = 500) {
-    const enrichedBuilds = [];
+function calculateDeploymentStats(builds) {
+    const deployed = builds.filter(b => b.is_deployed);
     
-    for (let i = 0; i < builds.length; i++) {
-        const build = builds[i];
-        const enriched = await enrichBuildWithMetadata(build);
-        enrichedBuilds.push(enriched);
-        
-        // Rate limiting: wait between requests
-        if (i < builds.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, delayMs));
+    const byPlatform = {};
+    deployed.forEach(build => {
+        if (build.deployment_platform) {
+            byPlatform[build.deployment_platform] = (byPlatform[build.deployment_platform] || 0) + 1;
         }
-        
-        // Log progress
-        if ((i + 1) % 5 === 0) {
-            console.log(`📊 Enriched ${i + 1}/${builds.length} builds`);
-        }
-    }
+    });
     
-    return enrichedBuilds;
+    const stats = {
+        total_deployed: deployed.length,
+        deployment_rate: ((deployed.length / builds.length) * 100).toFixed(2),
+        by_platform: byPlatform
+    };
+    
+    console.log('🚀 Deployment stats:', stats);
+    return stats;
 }
 
 /**
- * Format build data for easier consumption
- * Normalizes fields and ensures consistent structure
+ * Group builds by date
  * 
- * @param {Array<Object>} builds - Raw builds from builds.json
- * @returns {Array<Object>} - Normalized builds
+ * @param {Array<Object>} builds - Array of builds
+ * @returns {Object} - Builds grouped by date
  */
-function normalizeBuildData(builds) {
-    return builds.map((build, index) => ({
-        id: build.build_number || index + 1,
-        build_number: build.build_number,
-        project_name: build.project_name || 'Unknown Project',
-        category: build.category || 'Other',
-        technology: build.technology || [],
-        build_depth: build.build_depth || 'Basic',
-        repo_url: build.repo_url,
-        github_url: build.github_url || build.repo_url,
-        live_url: build.live_url || null,
-        description: build.description || '',
-        // Add metadata if present
-        ...(build.github_metadata && { metadata: build.github_metadata })
-    }));
-}
-
-/**
- * Main data fetching orchestration
- * Fetches and normalizes all build data
- * 
- * @param {Boolean} enrichWithMetadata - Whether to fetch additional GitHub data (slower)
- * @returns {Promise<Array>} - Clean, normalized build data
- */
-async function getAllBuildsData(enrichWithMetadata = false) {
-    try {
-        // Fetch raw builds data
-        let builds = await fetchBuildsData();
+function groupBuildsByDate(builds) {
+    const grouped = {};
+    
+    builds.forEach(build => {
+        const date = build.date || new Date().toISOString().split('T')[0];
         
-        // Normalize the data
-        builds = normalizeBuildData(builds);
-        
-        // Optionally enrich with GitHub metadata
-        if (enrichWithMetadata) {
-            console.log('🔍 Enriching builds with GitHub metadata...');
-            builds = await enrichAllBuilds(builds);
+        if (!grouped[date]) {
+            grouped[date] = [];
         }
-        
-        console.log('✨ Data fetching complete');
-        return builds;
-        
-    } catch (error) {
-        console.error('Fatal error in data fetching:', error);
-        throw error;
-    }
+        grouped[date].push(build);
+    });
+    
+    return grouped;
 }
 
-// Export functions for use in other modules
-// (Note: In this browser environment, these are globally accessible)
+console.log('✨ DataFetcher.js loaded');
