@@ -1,0 +1,53 @@
+{
+  "builds": [
+    {
+      "id": 1,
+      "build_number": 1,
+      "project_name": "Portfolio Website",
+      "category": "Web Development",
+      "technology": ["HTML", "CSS", "JavaScript"],
+      "build_depth": "Basic",
+      "repo_url": "https://github.com/breakingthebot/build-001",
+      "description": "Personal portfolio website showcasing projects"
+    },
+    {
+      "id": 2,
+      "build_number": 2,
+      "project_name": "Todo App",
+      "category": "Web Development",
+      "technology": ["React", "JavaScript", "CSS"],
+      "build_depth": "Expanded",
+      "repo_url": "https://github.com/breakingthebot/build-002",
+      "description": "Interactive todo application with local storage"
+    },
+    {
+      "id": 3,
+      "build_number": 3,
+      "project_name": "REST API",
+      "category": "Backend",
+      "technology": ["Node.js", "Express", "MongoDB"],
+      "build_depth": "Deep",
+      "repo_url": "https://github.com/breakingthebot/build-003",
+      "description": "RESTful API with authentication and database"
+    }
+  ],
+  "stats": {
+    "totalBuilds": 286,
+    "totalProjects": 25,
+    "totalLanguages": 18,
+    "totalCategories": 8,
+    "averageBuildsPerProject": 11.4,
+    "deepBuilds": 95,
+    "expandedBuilds": 120,
+    "basicBuilds": 71,
+    "buildsWithLiveUrl": 156
+  },
+  "languages": [
+    { "name": "JavaScript", "count": 89, "percentage": "31.12" },
+    { "name": "React", "count": 67, "percentage": "23.43" },
+    { "name": "Node.js", "count": 45, "percentage": "15.73" },
+    { "name": "Python", "count": 32, "percentage": "11.19" },
+    { "name": "CSS", "count": 78, "percentage": "27.27" }
+  ],
+  "timestamp": "2026-07-08T12:00:00Z"
+}
