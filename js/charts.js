@@ -76,18 +76,25 @@ function renderLanguageChart3D(languages) {
  * @param {Array<Object>} categories - Category aggregation data
  */
 function renderCategoryChart(categories) {
-    const labels = categories.map(c => c.name);
-    const values = categories.map(c => c.count);
+    const rootId = 'all-categories';
+    const totalBuilds = categories.reduce((sum, category) => sum + category.count, 0);
+    const labels = ['All Categories', ...categories.map(c => c.name)];
+    const values = [totalBuilds, ...categories.map(c => c.count)];
+    const ids = [rootId, ...categories.map(c => `category-${c.name}`)];
+    const parents = ['', ...categories.map(() => rootId)];
 
     const trace = {
+        ids: ids,
         labels: labels,
+        parents: parents,
         values: values,
         type: 'sunburst',
+        branchvalues: 'total',
         marker: {
-            colors: categories.map((_, i) => {
+            colors: ['#58a6ff', ...categories.map((_, i) => {
                 const hue = (i * 360) / categories.length;
                 return `hsl(${hue}, 65%, 55%)`;
-            }),
+            })],
             line: {
                 color: '#1a1f2e',
                 width: 2
@@ -127,15 +134,17 @@ function renderCategoryChart(categories) {
  * @param {Array<Object>} velocity - Velocity data with weeks
  */
 function renderTimelineChart(velocity) {
-    // Organize into weeks x months grid
-    const weeks = velocity.map((_, i) => i + 1);
+    // Angle labels to keep full week ranges readable without overlapping.
+    const timelineTickAngle = -35;
+    const weeks = velocity.map(v => v.week);
     const builds = velocity.map(v => v.builds);
-    const dates = velocity.map(v => v.date);
+    const weekRanges = velocity.map(v => `${v.weekStart} → ${v.weekEnd}`);
 
     const trace = {
         x: weeks,
         y: ['Build Intensity'],
         z: [builds],
+        customdata: [weekRanges],
         type: 'heatmap',
         colorscale: [
             [0, '#0f1419'],
@@ -143,7 +152,7 @@ function renderTimelineChart(velocity) {
             [0.6, '#58a6ff'],
             [1, '#79c0ff']
         ],
-        hovertemplate: 'Week %{x}<br>Builds: %{z}<extra></extra>',
+        hovertemplate: 'Week %{x}<br>Range: %{customdata}<br>Builds: %{z}<extra></extra>',
         colorbar: {
             title: 'Builds',
             thickness: 20,
@@ -155,9 +164,10 @@ function renderTimelineChart(velocity) {
     const layout = {
         title: '',
         xaxis: {
-            title: 'Week Number',
+            title: 'Week Range',
             titlefont: { color: '#e6edf3' },
             tickfont: { color: '#8b949e' },
+            tickangle: timelineTickAngle,
             gridcolor: '#30363d'
         },
         yaxis: {
