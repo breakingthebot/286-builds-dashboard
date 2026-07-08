@@ -75,11 +75,11 @@ function detectDeployment(build) {
         { platform: 'Vercel', regex: /\bvercel\b/ },
         { platform: 'Streamlit', regex: /\bstreamlit\b/ },
         { platform: 'Netlify', regex: /\bnetlify\b/ },
-        { platform: 'GitHub Pages', regex: /\bgithub pages\b|\bgh-pages\b/ },
+        { platform: 'GitHub Pages', regex: /\bgithub pages\b|(?:^|\W)gh-pages(?:\W|$)/ },
         { platform: 'Render', regex: /\brender(?:\.com)?\b/ },
         { platform: 'Railway', regex: /\brailway\b/ },
         { platform: 'Fly.io', regex: /\bfly\.io\b|\bflyio\b/ },
-        { platform: 'Firebase', regex: /\bfirebase hosting\b/ },
+        { platform: 'Firebase', regex: /\bfirebase(?:\s+hosting)?\b/ },
         { platform: 'Heroku', regex: /\bheroku\b/ },
         { platform: 'Surge', regex: /\bsurge\.sh\b|\bsurge\b/ }
     ];

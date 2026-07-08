@@ -134,6 +134,7 @@ function renderCategoryChart(categories) {
  * @param {Array<Object>} velocity - Velocity data with weeks
  */
 function renderTimelineChart(velocity) {
+    // Angle labels to keep full week ranges readable without overlapping.
     const timelineTickAngle = -35;
     const weeks = velocity.map(v => v.week);
     const builds = velocity.map(v => v.builds);
