@@ -76,7 +76,7 @@ function detectDeployment(build) {
         { platform: 'Streamlit', regex: /\bstreamlit\b/i },
         { platform: 'Netlify', regex: /\bnetlify\b/i },
         { platform: 'GitHub Pages', regex: /\bgithub pages\b|\bgh-pages\b/i },
-        { platform: 'Render', regex: /\bdeployed to render\b|\bhosted on render\b|\brender\.com\b/i },
+        { platform: 'Render', regex: /\brender(?:\.com)?\b/i },
         { platform: 'Railway', regex: /\brailway\b/i },
         { platform: 'Fly.io', regex: /\bfly\.io\b|\bflyio\b/i },
         { platform: 'Firebase', regex: /\bfirebase hosting\b/i },
