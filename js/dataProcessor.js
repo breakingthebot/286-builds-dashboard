@@ -4,12 +4,7 @@
  * Transforms raw build data into aggregations and statistics
  * Prepares data for visualization
  * 
- * Key functions:
- * - aggregateByLanguage()
- * - aggregateByCategory()
- * - calculateBuildVelocity()
- * - calculateSkillsProgression()
- * - getDashboardStats()
+ * Now uses REAL dates from your builds data!
  */
 
 /**
@@ -46,6 +41,7 @@ function aggregateByLanguage(builds) {
 
 /**
  * Count and aggregate builds by category
+ * Uses YOUR real category data!
  * 
  * @param {Array<Object>} builds - Array of build objects
  * @returns {Array<Object>} - Array of {category, count, percentage}
@@ -74,7 +70,7 @@ function aggregateByCategory(builds) {
  * Aggregate builds by depth level (Deep, Expanded, Basic)
  * 
  * @param {Array<Object>} builds - Array of build objects
- * @returns {Object} - Depth distribution
+ * @returns {Array<Object>} - Depth distribution
  */
 function aggregateByDepth(builds) {
     const depthMap = {
@@ -102,34 +98,63 @@ function aggregateByDepth(builds) {
 }
 
 /**
- * Calculate build velocity over time
- * Simulates timeline by assigning builds to weeks
- * (In real scenario, would use actual completion dates from metadata)
+ * Calculate build velocity using REAL DATES from your builds
+ * Groups by week based on actual dates
  * 
- * @param {Array<Object>} builds - Array of build objects
+ * @param {Array<Object>} builds - Array of build objects sorted by date
  * @returns {Array<Object>} - Weekly build counts
  */
 function calculateBuildVelocity(builds) {
-    // Group builds into weeks (roughly 286 builds / 52 weeks = ~5.5 per week)
-    const weeksPerBuild = builds.length / 52;
-    const velocity = [];
+    // Sort by date
+    const sortedBuilds = [...builds].sort((a, b) => {
+        return new Date(a.date) - new Date(b.date);
+    });
     
-    for (let week = 0; week < 52; week++) {
-        const weekStart = Math.floor(week * weeksPerBuild);
-        const weekEnd = Math.floor((week + 1) * weeksPerBuild);
-        const weekBuilds = builds.slice(weekStart, weekEnd);
+    // Group by week
+    const weekMap = {};
+    
+    sortedBuilds.forEach(build => {
+        const date = new Date(build.date);
+        // Get week number
+        const onejan = new Date(date.getFullYear(), 0, 1);
+        const millisecsInDay = 86400000;
+        const weekNum = Math.ceil((((date - onejan) / millisecsInDay) + onejan.getDay() + 1) / 7);
+        const year = date.getFullYear();
+        const weekKey = `${year}-W${weekNum}`;
         
-        const weekDate = new Date(2024, 0, 1 + (week * 7)); // Approximate dates
+        if (!weekMap[weekKey]) {
+            weekMap[weekKey] = {
+                week: weekNum,
+                year: year,
+                weekKey: weekKey,
+                date: date.toISOString().split('T')[0],
+                builds: 0,
+                projects: new Set()
+            };
+        }
         
-        velocity.push({
-            week: week + 1,
-            date: weekDate.toISOString().split('T')[0],
-            builds: weekBuilds.length,
-            cumulative: weekStart + weekBuilds.length
-        });
-    }
+        weekMap[weekKey].builds++;
+        weekMap[weekKey].projects.add(build.project_name);
+    });
+    
+    // Convert to array and calculate cumulative
+    const velocity = Object.values(weekMap)
+        .sort((a, b) => {
+            const aDate = new Date(a.date);
+            const bDate = new Date(b.date);
+            return aDate - bDate;
+        })
+        .map((week, index) => ({
+            week: week.week,
+            weekKey: week.weekKey,
+            date: week.date,
+            builds: week.builds,
+            cumulative: sortedBuilds.slice(0, sortedBuilds.indexOf(
+                sortedBuilds.find(b => new Date(b.date).toISOString().split('T')[0] === week.date)
+            ) + 1).length
+        }));
 
-    console.log('📅 Build velocity calculated:', velocity.length, 'weeks');
+    console.log('📅 Build velocity calculated from real dates:', velocity.length, 'weeks');
     return velocity;
 }
 
@@ -138,25 +163,29 @@ function calculateBuildVelocity(builds) {
  * Creates a radar chart dataset
  * 
  * @param {Array<Object>} builds - Array of build objects
- * @returns {Object} - Skills progression data
+ * @returns {Array<Object>} - Skills progression data
  */
 function calculateSkillsProgression(builds) {
     const skillAreas = {
-        'Frontend': { regex: /react|vue|angular|html|css|javascript|typescript/i, count: 0 },
-        'Backend': { regex: /node|python|java|go|rust|php|ruby|django/i, count: 0 },
-        'DevOps': { regex: /docker|kubernetes|ci\/cd|aws|gcp|azure|terraform/i, count: 0 },
-        'Database': { regex: /sql|mongodb|postgresql|redis|firebase|dynamodb/i, count: 0 },
-        'Testing': { regex: /test|jest|mocha|pytest|rspec/i, count: 0 },
-        'Mobile': { regex: /react native|flutter|swift|kotlin|mobile/i, count: 0 }
+        'Frontend': { regex: /react|vue|angular|html|css|javascript|typescript|es modules/i, count: 0 },
+        'Backend': { regex: /node|python|java|go|rust|php|ruby|django|networking/i, count: 0 },
+        'DevOps': { regex: /docker|kubernetes|ci\/cd|aws|gcp|azure|terraform|automation|bash|shell/i, count: 0 },
+        'Database': { regex: /sql|mongodb|postgresql|redis|firebase|dynamodb|sqlite/i, count: 0 },
+        'Testing': { regex: /test|jest|mocha|pytest|rspec|junit|xctest/i, count: 0 },
+        'Mobile': { regex: /react native|flutter|swift|kotlin|mobile|android|ios|compose/i, count: 0 },
+        'Data & ML': { regex: /data|analytics|streamlit|ml|machine learning|pandas|matplotlib/i, count: 0 },
+        'CLI Tools': { regex: /cli|command|bash|shell|click/i, count: 0 }
     };
 
     builds.forEach(build => {
-        const allTechs = Array.isArray(build.technology) 
-            ? build.technology.join(' ').toLowerCase()
-            : (build.technology || '').toLowerCase();
+        const allText = (
+            (Array.isArray(build.technology) ? build.technology.join(' ') : build.technology || '') + ' ' +
+            (build.category || '') + ' ' +
+            (build.description || '')
+        ).toLowerCase();
         
         Object.keys(skillAreas).forEach(skill => {
-            if (skillAreas[skill].regex.test(allTechs)) {
+            if (skillAreas[skill].regex.test(allText)) {
                 skillAreas[skill].count++;
             }
         });
@@ -167,7 +196,9 @@ function calculateSkillsProgression(builds) {
             skill,
             proficiency: Math.min(100, (data.count / builds.length) * 100),
             count: data.count
-        }));
+        }))
+        .filter(s => s.count > 0) // Only show skills with at least 1 build
+        .sort((a, b) => b.proficiency - a.proficiency);
 
     console.log('🎯 Skills progression calculated:', skills);
     return skills;
@@ -180,6 +211,8 @@ function calculateSkillsProgression(builds) {
  * @returns {Object} - Dashboard stats
  */
 function getDashboardStats(builds) {
+    const deployedBuilds = builds.filter(b => b.is_deployed).length;
+    
     const stats = {
         totalBuilds: builds.length,
         totalProjects: new Set(builds.map(b => b.project_name)).size,
@@ -191,7 +224,8 @@ function getDashboardStats(builds) {
         deepBuilds: builds.filter(b => b.build_depth === 'Deep').length,
         expandedBuilds: builds.filter(b => b.build_depth === 'Expanded').length,
         basicBuilds: builds.filter(b => b.build_depth === 'Basic').length,
-        buildsWithLiveUrl: builds.filter(b => b.live_url).length,
+        buildsWithLiveUrl: deployedBuilds,
+        deploymentRate: ((deployedBuilds / builds.length) * 100).toFixed(1)
     };
 
     console.log('📊 Dashboard stats calculated:', stats);
@@ -254,7 +288,6 @@ function processAllData(builds) {
     };
 
     console.log('✅ Data processing complete');
-    console.log('Processed data structure:', processedData);
     
     return processedData;
 }
@@ -295,10 +328,15 @@ function getTechColor(tech) {
         'MongoDB': '#13AA52',
         'PostgreSQL': '#336791',
         'AWS': '#FF9900',
-        'Git': '#F1502F'
+        'Git': '#F1502F',
+        'Kotlin': '#7F52FF',
+        'Swift': '#FA7343',
+        'Lua': '#000080',
+        'Shell': '#4EAA25',
+        'Streamlit': '#FF2B2B'
     };
 
     return colors[tech] || '#58A6FF'; // Default to accent blue
 }
 
-// Export functions (globally accessible in browser)
+console.log('✨ DataProcessor.js loaded');
