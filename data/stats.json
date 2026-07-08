@@ -1,0 +1,35 @@
+{
+  "totalBuilds": 28,
+  "totalCategories": 8,
+  "totalTechnologies": 28,
+  "deepBuilds": 19,
+  "expandedBuilds": 9,
+  "basicBuilds": 0,
+  "byCategory": {
+    "Web Frontend": 8,
+    "CLI Tools": 6,
+    "Data & Analytics": 3,
+    "Backend & Networking": 3,
+    "Automation & DevOps": 2,
+    "Mobile Apps": 2,
+    "Desktop & Console Apps": 2,
+    "Libraries & Packages": 2
+  },
+  "byDepth": {
+    "Deep": 19,
+    "Expanded": 9
+  },
+  "topTechnologies": {
+    "TanStack Query": 1,
+    "Zustand": 1,
+    "React Router": 1,
+    "React": 1,
+    "Python (SQL)": 1,
+    "Lua": 1,
+    "Shell": 1,
+    "Kotlin": 1,
+    "Swift": 1,
+    "C#": 1
+  },
+  "lastUpdated": "2026-07-08T19:12:42.516163+00:00"
+}

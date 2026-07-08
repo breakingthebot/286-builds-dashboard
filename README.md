@@ -2,6 +2,8 @@
 
 An advanced interactive dashboard that visualizes the progression of 286 daily coding builds across 25 completed projects.
 
+🌐 Live site: https://breakingthebot.github.io/286-builds-dashboard/
+
 ## 📊 Overview
 
 This dashboard fetches build metadata from the [286-builds](https://github.com/breakingthebot/286-builds) repository and transforms it into beautiful, interactive visualizations showing:
@@ -98,6 +100,17 @@ User sees beautiful dashboard! ✨
    ```
 
 3. **Dashboard loads automatically** - Data is fetched from GitHub and visualized
+
+### GitHub Pages Deployment
+
+This project is configured for GitHub Pages project-site hosting:
+
+- **Source**: Deploy from branch
+- **Branch**: `main`
+- **Folder**: `/` (root)
+- **Live URL**: https://breakingthebot.github.io/286-builds-dashboard/
+
+Because `index.html` is in the repository root and all CSS/JS links use relative paths (`css/...`, `js/...`), the site deploys automatically on every push to `main`.
 
 ### Requirements
 
