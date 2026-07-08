@@ -173,6 +173,22 @@ body {
     font-style: italic;
 }
 
+.skills-scrubber {
+    margin-bottom: 16px;
+}
+
+.skills-scrubber input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent-primary);
+    margin-bottom: 6px;
+}
+
+.skills-scrubber #skills-scrubber-label {
+    margin: 0;
+    font-style: normal;
+    color: var(--accent-secondary);
+}
+
 .chart {
     width: 100%;
     height: 400px;

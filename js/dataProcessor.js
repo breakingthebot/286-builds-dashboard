@@ -198,49 +198,84 @@ function formatWeekLabel(startDate, endDate) {
 }
 
 /**
- * Estimate skills development based on categories and technologies
- * Creates a radar chart dataset
- * 
- * @param {Array<Object>} builds - Array of build objects
- * @returns {Array<Object>} - Skills progression data
+ * Skill area keyword patterns, shared by every skills calculation below
+ * so there's exactly one definition of what counts as "Frontend",
+ * "Backend", etc.
  */
-function calculateSkillsProgression(builds) {
-    const skillAreas = {
-        'Frontend': { regex: /react|vue|angular|html|css|javascript|typescript|es modules/i, count: 0 },
-        'Backend': { regex: /node|python|java|go|rust|php|ruby|django|networking/i, count: 0 },
-        'DevOps': { regex: /docker|kubernetes|ci\/cd|aws|gcp|azure|terraform|automation|bash|shell/i, count: 0 },
-        'Database': { regex: /sql|mongodb|postgresql|redis|firebase|dynamodb|sqlite/i, count: 0 },
-        'Testing': { regex: /test|jest|mocha|pytest|rspec|junit|xctest/i, count: 0 },
-        'Mobile': { regex: /react native|flutter|swift|kotlin|mobile|android|ios|compose/i, count: 0 },
-        'Data & ML': { regex: /data|analytics|streamlit|ml|machine learning|pandas|matplotlib/i, count: 0 },
-        'CLI Tools': { regex: /cli|command|bash|shell|click/i, count: 0 }
-    };
+const SKILL_AREA_PATTERNS = {
+    'Frontend': /react|vue|angular|html|css|javascript|typescript|es modules/i,
+    'Backend': /node|python|java|go|rust|php|ruby|django|networking/i,
+    'DevOps': /docker|kubernetes|ci\/cd|aws|gcp|azure|terraform|automation|bash|shell/i,
+    'Database': /sql|mongodb|postgresql|redis|firebase|dynamodb|sqlite/i,
+    'Testing': /test|jest|mocha|pytest|rspec|junit|xctest/i,
+    'Mobile': /react native|flutter|swift|kotlin|mobile|android|ios|compose/i,
+    'Data & ML': /data|analytics|streamlit|ml|machine learning|pandas|matplotlib/i,
+    'CLI Tools': /cli|command|bash|shell|click/i
+};
 
-    builds.forEach(build => {
-        const allText = (
-            (Array.isArray(build.technology) ? build.technology.join(' ') : build.technology || '') + ' ' +
-            (build.category || '') + ' ' +
-            (build.description || '')
-        ).toLowerCase();
-        
-        Object.keys(skillAreas).forEach(skill => {
-            if (skillAreas[skill].regex.test(allText)) {
-                skillAreas[skill].count++;
-            }
-        });
+/**
+ * Builds the searchable text used to match a build against skill areas.
+ *
+ * @param {Object} build - A single build object.
+ * @returns {String} - Lowercased text combining technology, category, and description.
+ */
+function buildSkillSearchText(build) {
+    return (
+        (Array.isArray(build.technology) ? build.technology.join(' ') : build.technology || '') + ' ' +
+        (build.category || '') + ' ' +
+        (build.description || '')
+    ).toLowerCase();
+}
+
+/**
+ * Calculates skill coverage cumulatively, build by build in chronological
+ * order, so the radar chart can show how coverage actually grew over the
+ * series instead of only a single end-state snapshot.
+ *
+ * @param {Array<Object>} builds - Array of build objects.
+ * @returns {Array<Object>} - One snapshot per build: {index, buildNumber, date, projectName, skills}.
+ */
+function calculateSkillsProgressionOverTime(builds) {
+    const sortedBuilds = [...builds]
+        .map(build => ({ ...build, parsedDate: parseBuildDate(build.date) }))
+        .filter(build => !Number.isNaN(build.parsedDate.getTime()))
+        .sort((a, b) => a.parsedDate - b.parsedDate);
+
+    const runningCounts = {};
+    Object.keys(SKILL_AREA_PATTERNS).forEach(skill => {
+        runningCounts[skill] = 0;
     });
 
-    const skills = Object.entries(skillAreas)
-        .map(([skill, data]) => ({
-            skill,
-            proficiency: Math.min(100, (data.count / builds.length) * 100),
-            count: data.count
-        }))
-        .filter(s => s.count > 0) // Only show skills with at least 1 build
-        .sort((a, b) => b.proficiency - a.proficiency);
+    const snapshots = sortedBuilds.map((build, position) => {
+        const buildsSoFar = position + 1;
+        const searchableText = buildSkillSearchText(build);
 
-    console.log('🎯 Skills progression calculated:', skills);
-    return skills;
+        Object.entries(SKILL_AREA_PATTERNS).forEach(([skill, regex]) => {
+            if (regex.test(searchableText)) {
+                runningCounts[skill]++;
+            }
+        });
+
+        const skills = Object.entries(runningCounts)
+            .map(([skill, count]) => ({
+                skill,
+                proficiency: Math.min(100, (count / buildsSoFar) * 100),
+                count
+            }))
+            .filter(s => s.count > 0)
+            .sort((a, b) => b.proficiency - a.proficiency);
+
+        return {
+            index: buildsSoFar,
+            buildNumber: build.build_number,
+            date: build.date,
+            projectName: build.project_name,
+            skills
+        };
+    });
+
+    console.log(`🎯 Skills progression calculated: ${snapshots.length} snapshots`);
+    return snapshots;
 }
 
 /**
@@ -272,48 +307,18 @@ function getDashboardStats(builds) {
 }
 
 /**
- * Calculate technology co-occurrence
- * Which technologies are most frequently used together
- * 
- * @param {Array<Object>} builds - Array of build objects
- * @returns {Array<Object>} - Tech pairs with frequency
- */
-function calculateTechCooccurrence(builds) {
-    const pairs = {};
-    
-    builds.forEach(build => {
-        const techs = Array.isArray(build.technology) 
-            ? build.technology 
-            : [build.technology];
-        
-        // Create pairs of technologies
-        for (let i = 0; i < techs.length; i++) {
-            for (let j = i + 1; j < techs.length; j++) {
-                const pair = [techs[i], techs[j]].sort().join(' + ');
-                pairs[pair] = (pairs[pair] || 0) + 1;
-            }
-        }
-    });
-
-    const result = Object.entries(pairs)
-        .map(([pair, count]) => ({ pair, count }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 10); // Top 10 pairs
-
-    console.log('🔗 Technology co-occurrence calculated:', result);
-    return result;
-}
-
-/**
  * Process all data for dashboard display
  * Orchestrates all aggregation and processing functions
- * 
+ *
  * @param {Array<Object>} builds - Raw build data
  * @returns {Object} - Complete processed dashboard data
  */
 function processAllData(builds) {
     console.log('🔄 Processing all data...');
-    
+
+    const skillsProgression = calculateSkillsProgressionOverTime(builds);
+    const latestSkillsSnapshot = skillsProgression[skillsProgression.length - 1];
+
     const processedData = {
         builds: builds,
         stats: getDashboardStats(builds),
@@ -321,13 +326,13 @@ function processAllData(builds) {
         categories: aggregateByCategory(builds),
         depth: aggregateByDepth(builds),
         velocity: calculateBuildVelocity(builds),
-        skills: calculateSkillsProgression(builds),
-        techPairs: calculateTechCooccurrence(builds),
+        skills: latestSkillsSnapshot ? latestSkillsSnapshot.skills : [],
+        skillsProgression: skillsProgression,
         timestamp: new Date().toISOString()
     };
 
     console.log('✅ Data processing complete');
-    
+
     return processedData;
 }
 

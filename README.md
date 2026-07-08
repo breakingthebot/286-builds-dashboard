@@ -107,12 +107,11 @@ User sees beautiful dashboard! ✨
 
 ## 📈 Visualizations
 
-### 1. Language Distribution (3D Pie Chart)
-Shows the breakdown of programming languages used across all 286 builds.
-- **Interactive**: Hover to see percentages
-- **3D View**: Can be rotated
-- **Legend**: Click legend items to toggle visibility
-- **Use Case**: Understand your tech stack diversity
+### 1. Language Distribution (real 3D scatter chart)
+Shows the breakdown of programming languages used across all builds as a genuine Plotly `scatter3d` scene -- language on one axis, build count on another, share-of-total percentage on the third, marker size scaled to count.
+- **Interactive**: Drag to rotate, scroll to zoom, right-click-drag to pan -- a real 3D scene, not a 2D chart labeled "3D"
+- **Hover details**: Language, build count, and percentage share
+- **Use Case**: Understand your tech stack diversity from any angle
 
 ### 2. Category Breakdown (Sunburst Chart)
 Nested circular chart showing builds distributed by category.
@@ -135,12 +134,13 @@ Dual-axis chart showing weekly builds and cumulative progress.
 - **Trend analysis**: See acceleration/deceleration of progress
 - **Use Case**: Measure consistency and momentum
 
-### 5. Skills Progression (Radar Chart)
-Multi-axis radar showing skill development across areas.
-- **Axes**: Frontend, Backend, DevOps, Database, Testing, Mobile
-- **Proficiency**: 0-100% scale
-- **Interactive**: Hover for exact percentages
-- **Use Case**: Track balanced skill development
+### 5. Skills Progression (Radar Chart + build scrubber)
+Multi-axis radar showing skill *coverage* across areas -- the % of builds so far whose technology/category/description text matches each skill area's keywords (Frontend, Backend, DevOps, Database, Testing, Mobile, Data & ML, CLI Tools). A slider under the chart lets you scrub through the build series build-by-build, recomputing coverage as it stood at that point -- so "progression" is an actual build-by-build trend, not a single end-state snapshot labeled as one.
+- **Axes**: Frontend, Backend, DevOps, Database, Testing, Mobile, Data & ML, CLI Tools
+- **Scrubber**: Drag to replay coverage as of any build number
+- **Interactive**: Hover for exact percentages at the selected point
+- **Use Case**: See how skill coverage broadened over the series, not just where it ended up
+- **Honest limitation**: this is keyword-match coverage, not a real measurement of proficiency -- a build whose description happens to mention "test" counts toward "Testing" whether or not it involved deep testing work
 
 ### 6. Build Depth Distribution (Bar Chart)
 Shows breakdown of Deep, Expanded, and Basic builds.
@@ -262,7 +262,7 @@ dashboard.exportCSV()
 ## 🚀 Advanced Features
 
 ### Auto-Refresh
-Dashboard auto-refreshes every 5 minutes. Customize in `js/main.js`:
+Dashboard auto-refreshes every 5 minutes via a real `setInterval` timer, started once from `initializeDashboard()` in `js/main.js` after the first successful load (guarded so a page refresh doesn't stack a second timer on top of it). Customize the interval:
 ```javascript
 setupAutoRefresh(5); // minutes
 ```
@@ -282,26 +282,29 @@ When you return to the tab after 5+ minutes, data auto-refreshes.
 
 ## 📊 Data Structure
 
-Raw build from `builds.json`:
+Raw build from `builds.json` (actual shape, not aspirational):
 ```json
 {
   "build_number": 1,
-  "project_name": "My Project",
-  "category": "Web Development",
-  "technology": ["React", "Node.js", "MongoDB"],
-  "build_depth": "Deep",
-  "repo_url": "https://github.com/user/repo",
-  "description": "Project description"
+  "date": "2026-06-06",
+  "project_name": "Expense Tracker",
+  "description": "Standard-library-only expense tracker...",
+  "repo_url": "https://github.com/breakingthebot/expense-tracker",
+  "technology": "Python (Core)",
+  "category": "CLI Tools",
+  "stack": ["Python (Core)", "CLI Tools"],
+  "depth": "Expanded",
+  "notes": ""
 }
 ```
+`technology` is a single string per build, not an array -- `normalizeBuildData()` in `js/dataFetcher.js` maps `depth` to `build_depth` and prefers the explicit `technology` field, falling back to filtering the legacy `stack` array only if `technology` is missing.
 
 Processed/aggregated data includes:
 - Language counts and percentages
 - Category breakdowns
 - Weekly velocity
-- Skill proficiency scores
+- Skill coverage over time (cumulative, per build)
 - Build depth distribution
-- Technology co-occurrence
 
 ## 🤝 Contributing
 
@@ -348,8 +351,8 @@ MIT - Feel free to use this project for learning and personal use.
 ## ✨ Future Enhancements
 
 Potential improvements:
-- [ ] Real dates from GitHub metadata
-- [ ] Technology combinations analysis
+- [x] Real dates from `builds.json`'s own `date` field (already used by the velocity and skills-progression charts, not fabricated)
+- [ ] Technology combinations analysis (removed a broken first attempt at this -- every build only has one `technology` value, so pairwise co-occurrence was always empty; would need a different data source, like the languages a repo actually uses, to be meaningful)
 - [ ] Performance metrics
 - [ ] Contributor statistics
 - [ ] Deployment timeline

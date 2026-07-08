@@ -1,28 +1,27 @@
 /**
- * Data Fetcher Module - FIXED
- * Now correctly maps your actual field names
+ * Data Fetcher Module
+ * Fetches build data from the 286-builds index repo and normalizes it
+ * into the shape the rest of the dashboard expects.
  */
 
 async function getAllBuildsData(enrichData = false) {
     console.log('📡 Fetching builds data...');
-    
+
     try {
         const url = 'https://raw.githubusercontent.com/breakingthebot/286-builds/main/builds.json';
         const response = await fetch(url, { cache: 'no-cache' });
-        
+
         if (!response.ok) {
             throw new Error(`GitHub API error: ${response.status}`);
         }
-        
+
         let builds = await response.json();
         console.log(`✅ Fetched ${builds.length} raw builds`);
-        console.log('First build structure:', builds[0]);
-        
-        // Normalize - THIS IS THE FIX
+
         builds = builds.map(build => normalizeBuildData(build));
-        
+
         return builds;
-        
+
     } catch (error) {
         console.error('❌ Error fetching builds:', error);
         throw error;
@@ -30,29 +29,33 @@ async function getAllBuildsData(enrichData = false) {
 }
 
 /**
- * FIXED: Now correctly maps to YOUR field names
- * Your data uses: "depth" (not "build_depth"), "stack", "category", "date"
+ * Normalizes a raw builds.json entry into the shape the dashboard's
+ * processing/rendering functions expect. builds.json itself uses
+ * "depth" and a two-element "stack" ([technology, category]) array;
+ * this maps those onto the flatter technology/category/build_depth
+ * fields used everywhere downstream.
+ *
+ * @param {Object} build - A raw entry from builds.json.
+ * @returns {Object} - The normalized build.
  */
 function normalizeBuildData(build) {
-    // YOUR field is "depth", not "build_depth"
     const depth = build.depth || 'Basic';
     const deployment = detectDeployment(build);
-    
-    // Extract technology - use stack array, filter out categories
+
+    // Prefer the explicit technology field; fall back to filtering the
+    // legacy "stack" array (which interleaves technology and category)
+    // down to just the technology entries.
     let technology = [];
-    if (build.stack && Array.isArray(build.stack)) {
-        technology = build.stack.filter(item => {
-            const categoryKeywords = ['frontend', 'backend', 'devops', 'cli', 'mobile', 'desktop', 'data', 'networking', 'analytics', 'packages', 'console', 'apps', 'tools', 'automation'];
-            return !categoryKeywords.some(kw => item.toLowerCase().includes(kw));
-        });
-    }
-    if (technology.length === 0 && build.technology) {
+    if (build.technology) {
         technology = Array.isArray(build.technology) ? build.technology : [build.technology];
+    } else if (build.stack && Array.isArray(build.stack)) {
+        const categoryKeywords = ['frontend', 'backend', 'devops', 'cli', 'mobile', 'desktop', 'data', 'networking', 'analytics', 'packages', 'console', 'apps', 'tools', 'automation'];
+        technology = build.stack.filter(item => !categoryKeywords.some(kw => item.toLowerCase().includes(kw)));
     }
-    
+
     const date = build.date || new Date().toISOString().split('T')[0];
-    
-    const normalized = {
+
+    return {
         build_number: build.build_number || 0,
         date: date,
         project_name: build.project_name || 'Untitled',
@@ -60,14 +63,11 @@ function normalizeBuildData(build) {
         repo_url: build.repo_url || '',
         technology: technology,
         category: build.category || 'Uncategorized',
-        build_depth: depth,  // NOW CORRECTLY MAPPED
+        build_depth: depth,
         notes: build.notes || '',
         is_deployed: deployment.isDeployed,
         deployment_platform: deployment.platform
     };
-    
-    console.log(`✅ Normalized: ${build.project_name} - depth: ${depth}`);
-    return normalized;
 }
 
 function detectDeployment(build) {

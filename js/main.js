@@ -17,7 +17,8 @@ let dashboardState = {
     isError: false,
     errorMessage: '',
     data: null,
-    timestamp: null
+    timestamp: null,
+    autoRefreshStarted: false
 };
 
 // ============================================
@@ -74,9 +75,17 @@ async function initializeDashboard() {
         // Show success
         setLoadingState(false);
         showContent();
-        
+
+        // Only start the auto-refresh timer once -- initializeDashboard
+        // only runs on page load, but guard anyway since a second timer
+        // would double up every refresh from then on.
+        if (!dashboardState.autoRefreshStarted) {
+            setupAutoRefresh(5);
+            dashboardState.autoRefreshStarted = true;
+        }
+
         console.log('✨ Dashboard initialized successfully!');
-        
+
     } catch (error) {
         console.error('❌ Dashboard initialization failed:', error);
         showError(error.message || 'Failed to load dashboard data');

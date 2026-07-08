@@ -6,8 +6,10 @@
     <title>286 Builds Dashboard</title>
     <link rel="stylesheet" href="css/style.css">
     
-    <!-- Plotly.js for advanced 3D and statistical charts -->
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <!-- Plotly.js for advanced 3D and statistical charts. Pinned to an
+         explicit version -- "plotly-latest.min.js" was frozen at v1.58.5
+         (2021) since Plotly stopped updating that alias years ago. -->
+    <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@3.7.0/plotly.min.js"></script>
     
     <!-- D3.js for custom data visualizations -->
     <script src="https://d3js.org/d3.v7.min.js"></script>
@@ -87,7 +89,11 @@
             <div class="chart-row">
                 <div class="chart-container">
                     <h2>Skills Progression</h2>
-                    <p class="chart-description">Multi-axis skill development radar chart</p>
+                    <p class="chart-description">Multi-axis skill coverage radar -- drag the slider to replay how it grew build by build</p>
+                    <div class="skills-scrubber">
+                        <input type="range" id="skills-scrubber-input" min="1" max="1" value="1" step="1" aria-label="Build number to show skill coverage as of" />
+                        <p id="skills-scrubber-label" class="chart-description">As of build #1</p>
+                    </div>
                     <div id="skills-chart" class="chart"></div>
                 </div>
                 <div class="chart-container">

@@ -9,64 +9,66 @@
  * - renderCategoryChart()
  * - renderTimelineChart()
  * - renderVelocityChart()
- * - renderSkillsRadar()
+ * - renderSkillsRadar() / setupSkillsScrubber()
  * - renderDepthChart()
  */
 
 /**
- * Render 3D Language Distribution Pie Chart
- * Shows which languages are most used (Plotly 3D pie)
- * 
+ * Render Language Distribution as a real 3D scatter chart
+ * A genuine Plotly `scene`/scatter3d plot -- mouse-drag rotates, scroll
+ * zooms, right-click-drag pans, same as any true 3D chart. Language sits
+ * on the x-axis, build count on y, share-of-total percentage on z, with
+ * marker size also scaled to count so the "biggest" languages are
+ * immediately visible from any angle.
+ *
  * @param {Array<Object>} languages - Language aggregation data
  */
 function renderLanguageChart3D(languages) {
+    const maxCount = Math.max(...languages.map(l => l.count), 1);
+
     const trace = {
-        labels: languages.map(l => l.name),
-        values: languages.map(l => l.count),
-        type: 'pie',
+        type: 'scatter3d',
+        mode: 'markers+text',
+        x: languages.map(l => l.name),
+        y: languages.map(l => l.count),
+        z: languages.map(l => Number(l.percentage)),
+        text: languages.map(l => l.name),
+        textposition: 'top center',
+        textfont: { color: '#e6edf3', size: 10 },
         marker: {
-            colors: languages.map((_, i) => {
-                const hue = (i * 360) / languages.length;
-                return `hsl(${hue}, 70%, 60%)`;
-            }),
-            line: {
-                color: '#1a1f2e',
-                width: 2
-            }
+            size: languages.map(l => 8 + (l.count / maxCount) * 24),
+            color: languages.map((_, i) => `hsl(${(i * 360) / languages.length}, 70%, 60%)`),
+            opacity: 0.85,
+            line: { color: '#1a1f2e', width: 1 }
         },
-        textinfo: 'label+percent',
-        hovertemplate: '<b>%{label}</b><br>Builds: %{value}<br>Percentage: %{percent}<extra></extra>'
+        hovertemplate: '<b>%{x}</b><br>Builds: %{y}<br>Share: %{z}%<extra></extra>'
     };
 
     const layout = {
-        title: '',
-        showlegend: true,
-        height: 400,
+        height: 420,
         paper_bgcolor: 'rgba(0,0,0,0)',
-        plot_bgcolor: 'rgba(0,0,0,0)',
         font: {
             color: '#e6edf3',
             family: 'system-ui, -apple-system, sans-serif'
         },
-        margin: { l: 0, r: 0, t: 0, b: 0 },
-        legend: {
-            x: 1.05,
-            y: 1,
-            bgcolor: 'rgba(0,0,0,0.3)',
-            bordercolor: '#30363d',
-            borderwidth: 1
-        }
+        margin: { l: 0, r: 0, t: 10, b: 0 },
+        scene: {
+            xaxis: { title: 'Language', type: 'category', color: '#8b949e', gridcolor: '#30363d', backgroundcolor: 'rgba(0,0,0,0)' },
+            yaxis: { title: 'Builds', color: '#8b949e', gridcolor: '#30363d', backgroundcolor: 'rgba(0,0,0,0)' },
+            zaxis: { title: 'Share %', color: '#8b949e', gridcolor: '#30363d', backgroundcolor: 'rgba(0,0,0,0)' },
+            bgcolor: 'rgba(0,0,0,0)'
+        },
+        showlegend: false
     };
 
     const config = {
         responsive: true,
         displayModeBar: true,
-        displaylogo: false,
-        modeBarButtonsToRemove: ['select2d', 'lasso2d']
+        displaylogo: false
     };
 
     Plotly.newPlot('language-chart', [trace], layout, config);
-    console.log('✅ Language chart rendered');
+    console.log('✅ Language 3D chart rendered');
 }
 
 /**
@@ -339,6 +341,40 @@ function renderSkillsRadar(skills) {
 }
 
 /**
+ * Wires up the skills-progression scrubber: dragging it re-renders the
+ * radar chart using the skill snapshot as of that point in the build
+ * series, so "progression" is an actual build-by-build trend instead of
+ * a single end-state snapshot.
+ *
+ * @param {Array<Object>} skillsProgression - One snapshot per build, chronological.
+ */
+function setupSkillsScrubber(skillsProgression) {
+    const input = document.getElementById('skills-scrubber-input');
+    const label = document.getElementById('skills-scrubber-label');
+
+    if (!input || !label || skillsProgression.length === 0) {
+        return;
+    }
+
+    function renderAtPosition(position) {
+        const snapshot = skillsProgression[position - 1];
+        renderSkillsRadar(snapshot.skills);
+        label.textContent = `As of build #${snapshot.buildNumber} — ${snapshot.projectName} (${snapshot.date})`;
+    }
+
+    input.min = 1;
+    input.max = skillsProgression.length;
+    input.value = skillsProgression.length;
+
+    // Assignment (not addEventListener) so re-running this on every
+    // dashboard refresh replaces the handler instead of stacking a new
+    // one on top of the last refresh's handler.
+    input.oninput = (event) => renderAtPosition(Number(event.target.value));
+
+    renderAtPosition(skillsProgression.length);
+}
+
+/**
  * Render Build Depth Distribution
  * Bar chart showing Deep vs Expanded vs Basic builds
  * 
@@ -446,7 +482,7 @@ function renderAllCharts(processedData) {
     renderCategoryChart(processedData.categories);
     renderTimelineChart(processedData.velocity);
     renderVelocityChart(processedData.velocity);
-    renderSkillsRadar(processedData.skills);
+    setupSkillsScrubber(processedData.skillsProgression);
     renderDepthChart(processedData.depth);
     renderStatsChart(processedData.stats);
     
