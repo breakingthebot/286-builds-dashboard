@@ -8,10 +8,10 @@ async function getAllBuildsData(enrichData = false) {
     
     try {
         const url = 'https://raw.githubusercontent.com/breakingthebot/286-builds/main/builds.json';
-        const response = await fetch(url, { cache: 'no-cache' });
+        const response = await fetch(url, { cache: 'no-cache', mode: 'cors' });
         
         if (!response.ok) {
-            throw new Error(`GitHub API error: ${response.status}`);
+            throw new Error(`Build data request failed: ${response.status}`);
         }
         
         let builds = await response.json();
