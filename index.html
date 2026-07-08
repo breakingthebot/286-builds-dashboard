@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>286 Builds Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+    
+    <!-- Plotly.js for advanced 3D and statistical charts -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    
+    <!-- D3.js for custom data visualizations -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <h1>286 Builds Dashboard</h1>
+            <p class="subtitle">Visualizing 286 days of coding builds</p>
+            <div class="header-stats">
+                <div class="stat-card">
+                    <span class="stat-label">Total Builds</span>
+                    <span class="stat-value" id="total-builds">-</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Languages</span>
+                    <span class="stat-value" id="total-languages">-</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Categories</span>
+                    <span class="stat-value" id="total-categories">-</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Projects</span>
+                    <span class="stat-value" id="total-projects">-</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Loading State -->
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Loading dashboard...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="error" class="error hidden">
+            <p id="error-message"></p>
+        </div>
+
+        <!-- Dashboard Content -->
+        <div id="content" class="dashboard-content hidden">
+            <!-- Row 1: Language Distribution & Category Breakdown -->
+            <div class="chart-row">
+                <div class="chart-container">
+                    <h2>Language Distribution</h2>
+                    <p class="chart-description">Programming languages used across all builds (3D view)</p>
+                    <div id="language-chart" class="chart"></div>
+                </div>
+                <div class="chart-container">
+                    <h2>Category Breakdown</h2>
+                    <p class="chart-description">Builds distributed by category (sunburst view - click to drill down)</p>
+                    <div id="category-chart" class="chart"></div>
+                </div>
+            </div>
+
+            <!-- Row 2: Build Timeline & Build Velocity -->
+            <div class="chart-row">
+                <div class="chart-container full-width">
+                    <h2>Build Timeline</h2>
+                    <p class="chart-description">When each build was completed (animated heatmap over time)</p>
+                    <div id="timeline-chart" class="chart tall"></div>
+                </div>
+            </div>
+
+            <!-- Row 3: Build Velocity -->
+            <div class="chart-row">
+                <div class="chart-container full-width">
+                    <h2>Build Velocity</h2>
+                    <p class="chart-description">Builds completed per week/month showing productivity patterns</p>
+                    <div id="velocity-chart" class="chart"></div>
+                </div>
+            </div>
+
+            <!-- Row 4: Skills Progression -->
+            <div class="chart-row">
+                <div class="chart-container">
+                    <h2>Skills Progression</h2>
+                    <p class="chart-description">Multi-axis skill development radar chart</p>
+                    <div id="skills-chart" class="chart"></div>
+                </div>
+                <div class="chart-container">
+                    <h2>Build Depth Distribution</h2>
+                    <p class="chart-description">How many Deep vs Expanded vs Basic builds</p>
+                    <div id="depth-chart" class="chart"></div>
+                </div>
+            </div>
+
+            <!-- Row 5: Tech Stack Network (optional advanced viz) -->
+            <div class="chart-row">
+                <div class="chart-container full-width">
+                    <h2>Build Statistics</h2>
+                    <p class="chart-description">Detailed metrics and insights</p>
+                    <div id="stats-chart" class="chart"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="dashboard-footer">
+            <p>Data source: <a href="https://github.com/breakingthebot/286-builds" target="_blank">286-builds repository</a></p>
+            <p>Last updated: <span id="last-updated">-</span></p>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/dataFetcher.js"></script>
+    <script src="js/dataProcessor.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
