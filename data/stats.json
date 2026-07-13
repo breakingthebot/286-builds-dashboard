@@ -1,35 +1,36 @@
 {
-  "totalBuilds": 28,
+  "totalBuilds": 31,
   "totalCategories": 8,
-  "totalTechnologies": 28,
-  "deepBuilds": 19,
+  "totalTechnologies": 31,
+  "deepBuilds": 21,
   "expandedBuilds": 9,
   "basicBuilds": 0,
   "byCategory": {
-    "Web Frontend": 8,
+    "Web Frontend": 10,
     "CLI Tools": 6,
+    "Mobile Apps": 3,
     "Data & Analytics": 3,
     "Backend & Networking": 3,
     "Automation & DevOps": 2,
-    "Mobile Apps": 2,
     "Desktop & Console Apps": 2,
     "Libraries & Packages": 2
   },
   "byDepth": {
-    "Deep": 19,
+    "Standard": 1,
+    "Deep": 21,
     "Expanded": 9
   },
   "topTechnologies": {
+    "React Native (Expo)": 1,
+    "Remix": 1,
+    "Next.js": 1,
     "TanStack Query": 1,
     "Zustand": 1,
     "React Router": 1,
     "React": 1,
     "Python (SQL)": 1,
     "Lua": 1,
-    "Shell": 1,
-    "Kotlin": 1,
-    "Swift": 1,
-    "C#": 1
+    "Shell": 1
   },
-  "lastUpdated": "2026-07-12T08:09:14.362082+00:00"
+  "lastUpdated": "2026-07-13T09:17:16.794791+00:00"
 }
