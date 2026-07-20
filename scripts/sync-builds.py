@@ -128,7 +128,30 @@ def main() -> int:
     print(f"   Basic builds:     {stats['basicBuilds']}")
     print(f"   Categories:       {stats['totalCategories']}")
 
+    # Automatically update README.md counts
+    update_readme(stats['totalBuilds'])
+
     return 0
+
+def update_readme(total_builds: int) -> None:
+    readme_path = os.path.join(os.path.dirname(__file__), "..", "README.md")
+    if not os.path.exists(readme_path):
+        return
+        
+    with open(readme_path, "r", encoding="utf-8") as f:
+        content = f.read()
+        
+    import re
+    new_content = re.sub(
+        r"across \d+ completed projects",
+        f"across {total_builds} completed projects",
+        content
+    )
+    
+    if new_content != content:
+        with open(readme_path, "w", encoding="utf-8") as f:
+            f.write(new_content)
+        print(f"📝 Automatically updated README.md to show {total_builds} completed projects")
 
 
 if __name__ == "__main__":
