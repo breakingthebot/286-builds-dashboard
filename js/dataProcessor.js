@@ -285,7 +285,7 @@ function calculateSkillsProgressionOverTime(builds) {
  * @returns {Object} - Dashboard stats
  */
 function getDashboardStats(builds) {
-    const deployedBuilds = builds.filter(b => b.is_deployed).length;
+    const deployedBuilds = builds.filter(b => b.is_deployed || (b.repo_url && b.notes && b.notes.toLowerCase().includes('vercel'))).length;
     
     const stats = {
         totalBuilds: builds.length,
