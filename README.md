@@ -1,6 +1,6 @@
 # 286 Builds Dashboard
 
-An advanced interactive dashboard that visualizes the progression of 286 daily coding builds across 37 completed projects.
+An advanced interactive dashboard that visualizes the progression of 286 daily coding builds across 38 completed projects.
 
 🌐 Live site: https://breakingthebot.github.io/286-builds-dashboard/
 
