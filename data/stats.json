@@ -1,14 +1,14 @@
 {
-  "totalBuilds": 35,
+  "totalBuilds": 37,
   "totalCategories": 8,
-  "totalTechnologies": 34,
-  "deepBuilds": 25,
+  "totalTechnologies": 36,
+  "deepBuilds": 27,
   "expandedBuilds": 10,
   "basicBuilds": 0,
   "byCategory": {
-    "Web Frontend": 14,
+    "Web Frontend": 15,
     "CLI Tools": 6,
-    "Mobile Apps": 3,
+    "Mobile Apps": 4,
     "Data & Analytics": 3,
     "Backend & Networking": 3,
     "Automation & DevOps": 2,
@@ -16,20 +16,20 @@
     "Libraries & Packages": 2
   },
   "byDepth": {
-    "Deep": 25,
+    "Deep": 27,
     "Expanded": 10
   },
   "topTechnologies": {
     "Angular": 2,
+    "Ionic": 1,
+    "NgRx": 1,
     "Angular Material": 1,
     "Angular (RxJS)": 1,
     "React Native (Expo)": 1,
     "Remix": 1,
     "Next.js": 1,
     "TanStack Query": 1,
-    "Zustand": 1,
-    "React Router": 1,
-    "React": 1
+    "Zustand": 1
   },
-  "lastUpdated": "2026-07-23T08:22:49.742683+00:00"
+  "lastUpdated": "2026-07-23T21:18:53.501404+00:00"
 }
